@@ -1,6 +1,12 @@
-# clear scrollback buffer
-clear && printf '\e[3J'
+# clear ~scrollback buffer~
+clear # && printf '\e[3J'
 
+# Language
+LANG=en_US.UTF-8
+
+# ================================================================================
+# Begin Welcome screen
+# ================================================================================
 # display oh-myzsh logo
 RAINBOW=(
     "$(printf '\033[38;2;255;0;0m')"
@@ -24,6 +30,9 @@ printf '%s    %s        %s           %s /____/ %s       %s     %s          %s\n'
 # Unset the variables
 unset RAINBOW
 unset RESET
+# ================================================================================
+# End Welcome screen
+# ================================================================================
 
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
@@ -105,9 +114,14 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-git
-macos
-bgnotify
+    git
+    macos
+    bgnotify
+    poetry
+    docker
+    docker-compose
+    gh
+    kubectl
     zsh-syntax-highlighting
     zsh-autosuggestions
 )
@@ -122,11 +136,12 @@ source $ZSH/oh-my-zsh.sh
 # export LANG=en_US.UTF-8
 
 # Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
+if [[ -n $SSH_CONNECTION ]]; then
+  export EDITOR='vim'
+else
+  # export EDITOR='mvim'
+  export EDITOR='code'
+fi
 
 # Compilation flags
 # export ARCHFLAGS="-arch $(uname -m)"
@@ -143,32 +158,108 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
+# tmux adjustments
+export TERM=xterm-256color
+
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 export NVM_DIR="$HOME/.nvm"
-  [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
-  [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
+if [ -f "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]; then
+  source "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+fi
 
+# cds completion start
+
+# compinit can be removed here if loaded elsewhere in the script
+autoload -Uz compinit && compinit
+
+CDS_PROFILE=$(cds completion --shell zsh --profile 2> /dev/null) || CDS_PROFILE=""
+if [ -r "$CDS_PROFILE" ]; then
+    . "$CDS_PROFILE"
+fi
+
+# cds completion end
+
+# LaTex configuration
 export TEXINPUTS="/Users/i588389/Projects/ba-latex-template//:"
-
 export PATH="/usr/local/texlive/2024/bin/universal-darwin/:$PATH"
 
+# Python configuration
 export PATH="$HOME/.pyenv/bin:$PATH"
 eval "$(pyenv init --path)"
 eval "$(pyenv init -)"
 
-export PATH="/usr/local/bin:$PATH"
+alias pexp='poetry export -f requirements.txt --output requirements.txt'
+
+# export PATH="/usr/local/bin:$PATH"
+
+export PATH="$HOME/.local/bin:$PATH"
+
 
 function ku() {
     /opt/homebrew/bin/kubectl "$@"
 }
 
-setopt PROMPT_SUBST
+# gitignore gi command from https://docs.gitignore.io/
+function gi() {
+    curl -sLw "\n" https://www.toptal.com/developers/gitignore/api/$@ ;
+}
+
+function hide() {
+    printf '\e[3J'
+}
+
+eval "$(rbenv init -)"
+
+setopt PROMPT_SUBST # p10k
+
+#compdef explore-cli
+
+_explore_cli_completion() {
+    local -a completions
+    local -a completions_with_descriptions
+    local -a response
+    (( ! $+commands[explore-cli] )) && return 1
+
+    response=("${(@f)$(env COMP_WORDS="${words[*]}" COMP_CWORD=$((CURRENT-1)) _EXPLORE_CLI_COMPLETE=zsh_complete explore-cli)}")
+
+    for type key descr in ${response}; do
+        if [[ "$type" == "plain" ]]; then
+            if [[ "$descr" == "_" ]]; then
+                completions+=("$key")
+            else
+                completions_with_descriptions+=("$key":"$descr")
+            fi
+        elif [[ "$type" == "dir" ]]; then
+            _path_files -/
+        elif [[ "$type" == "file" ]]; then
+            _path_files -f
+        fi
+    done
+
+    if [ -n "$completions_with_descriptions" ]; then
+        _describe -V unsorted completions_with_descriptions -U
+    fi
+
+    if [ -n "$completions" ]; then
+        compadd -U -V unsorted -a completions
+    fi
+}
+
+if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
+    # autoload from fpath, call function directly
+    _explore_cli_completion "$@"
+else
+    # eval/source/. command, register function for later
+    compdef _explore_cli_completion explore-cli
+fi
 
 # GO stuff
 export GO_PATH=/Users/i588389/go
-export PATH="$PATH:/Users/i588389/go/bin/promdump"
+export PATH="$PATH:$GO_PATH/bin"
+# export PATH="$PATH:/Users/i588389/go/bin/promdump" #?
 
 export PATH
 export GPG_TTY=/dev/ttys021

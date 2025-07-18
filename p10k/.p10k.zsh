@@ -50,6 +50,7 @@
     anaconda                # conda environment (https://conda.io/)
     pyenv                   # python environment (https://github.com/pyenv/pyenv)
     goenv                   # go environment (https://github.com/syndbg/goenv)
+    docker_status           # CUSTOM
     nodenv                  # node.js version from nodenv (https://github.com/nodenv/nodenv)
     nvm                     # node.js version from nvm (https://github.com/nvm-sh/nvm)
     nodeenv                 # node.js environment (https://github.com/ekalinin/nodeenv)
@@ -108,7 +109,7 @@
     # battery               # internal battery
     # wifi                  # wifi speed
     # example               # example user-defined segment (see prompt_example function below)
-    ubernetes_kontext       # CUSTOM | CHANGED
+    # ubernetes_kontext       # CUSTOM | CHANGED
   )
 
   # Defines character set used by powerlevel10k. It's best to let `p10k configure` set it for you.
@@ -721,7 +722,7 @@
   typeset -g POWERLEVEL9K_RANGER_FOREGROUND=178
   # Custom icon.
   # typeset -g POWERLEVEL9K_RANGER_VISUAL_IDENTIFIER_EXPANSION='⭐'
-  
+
   ####################[ yazi: yazi shell (https://github.com/sxyazi/yazi) ]#####################
   # Yazi shell color.
   typeset -g POWERLEVEL9K_YAZI_FOREGROUND=178
@@ -1226,7 +1227,7 @@
   #############[ kubecontext: current kubernetes context (https://kubernetes.io/) ]#############
   # Show kubecontext only when the command you are typing invokes one of these tools.
   # Tip: Remove the next line to always show kubecontext.
-  typeset -g POWERLEVEL9K_KUBECONTEXT_SHOW_ON_COMMAND='kubectl|helm|kubens|kubectx|oc|istioctl|kogito|k9s|helmfile|flux|fluxctl|stern|kubeseal|skaffold|kubent|kubecolor|cmctl|sparkctl'
+  typeset -g POWERLEVEL9K_KUBECONTEXT_SHOW_ON_COMMAND='kubectl|helm|kubens|kubectx|oc|istioctl|kogito|k9s|helmfile|flux|fluxctl|stern|kubeseal|skaffold|kubent|kubecolor|cmctl|sparkctl|u8s'
 
   # Kubernetes context classes for the purpose of using different colors, icons and expansions with
   # different contexts.
@@ -1679,6 +1680,15 @@
   #   p10k segment -f 208 -i '⎈' -t "[${namespace}|${context}]"
   # }
 
+  function prompt_docker_status() {
+    # Nerd Font Docker icon:  (U+F308)
+    local icon=$'\uf308'
+    # local info=$(docker info 2>/dev/null)
+
+    if ! docker info 2>&1 | grep -q "Cannot connect to the Docker daemon"; then
+      p10k segment -f blue -i $icon
+    fi
+  }
 
   # User-defined prompt segments can be customized the same way as built-in segments.
   # typeset -g POWERLEVEL9K_EXAMPLE_FOREGROUND=208
